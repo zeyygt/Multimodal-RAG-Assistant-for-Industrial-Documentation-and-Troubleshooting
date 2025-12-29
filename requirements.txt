@@ -1,0 +1,32 @@
+# RAG Project Requirements
+
+# Core dependencies
+pymupdf>=1.24.0
+pillow>=10.0.0
+tqdm>=4.65.0
+
+# OCR engines
+pytesseract>=0.3.10
+easyocr>=1.7.0  # Optional, can be slow on CPU
+
+# Machine Learning
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.30.0
+sentence-transformers>=2.2.2
+accelerate>=0.20.0
+
+# Vector search
+faiss-cpu>=1.7.4  # Use faiss-cpu instead of faiss-gpu for CPU-only systems
+
+# Utilities
+numpy>=1.24.0
+
+# LLM APIs
+openai>=1.0.0
+python-dotenv>=1.0.0
+
+# Web API
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-multipart>=0.0.6

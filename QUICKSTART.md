@@ -1,21 +1,21 @@
-# 🚀 Hızlı Başlangıç Rehberi (Quick Start Guide)
+# 🚀 Quick Start Guide
 
-## İlk Kurulum (First Time Setup)
+## First Time Setup
 
-### 1. Python Bağımlılıklarını Kur
+### 1. Install Python Dependencies
 
 ```bash
-# Virtual environment oluştur
+# Create virtual environment
 python -m venv venv
 
-# Aktive et
+# Activate it
 source venv/bin/activate
 
-# Paketleri yükle
+# Install packages
 pip install -r requirements.txt
 ```
 
-### 2. Frontend Bağımlılıklarını Kur
+### 2. Install Frontend Dependencies
 
 ```bash
 cd web
@@ -23,48 +23,48 @@ npm install
 cd ..
 ```
 
-### 3. API Anahtarını Ekle
+### 3. Add API Key
 
-`.env` dosyası oluştur ve OpenAI API anahtarını ekle:
+Create a `.env` file and add your OpenAI API key:
 
 ```env
 OPENAI_API_KEY=sk-your-api-key-here
 ```
 
-API key almak için: https://platform.openai.com/api-keys
+Get API key from: https://platform.openai.com/api-keys
 
-### 4. PDF Dosyalarını İşle
+### 4. Process PDF Files
 
 ```bash
-# PDF'leri data/ klasörüne koy
+# Put PDFs in data/ folder
 mkdir -p data
 cp /path/to/your/file.pdf data/
 
-# İşleme pipeline'ını çalıştır
+# Run processing pipeline
 source venv/bin/activate
 python src/main.py
 ```
 
-Bu adım:
-- PDF'den metin ve resim çıkarır
-- OCR yapar
-- Chunk'lar oluşturur
-- Embedding'ler üretir
-- FAISS index oluşturur
+This step will:
+- Extract text and images from PDF
+- Perform OCR
+- Create chunks
+- Generate embeddings
+- Build FAISS index
 
-**Süre:** ~100 sayfa için 2-5 dakika
+**Duration:** ~2-5 minutes for 100 pages
 
-## Uygulamayı Çalıştırma (Running the App)
+## Running the Application
 
-### Otomatik Başlatma (Recommended)
+### Automatic Start (Recommended)
 
 ```bash
 ./start.sh
 ```
 
-Bu script hem backend'i hem frontend'i başlatır.
+This script starts both backend and frontend.
 
-### Manuel Başlatma
+### Manual Start
 
 **Terminal 1 - Backend:**
 ```bash
@@ -78,82 +78,82 @@ cd web
 npm start
 ```
 
-## Tarayıcıda Aç
+## Open in Browser
 
 http://localhost:3000
 
-## Örnek Sorular
+## Example Questions
 
-- "Cihazı nasıl resetlerim?"
-- "Güvenlik önlemleri nelerdir?"
-- "Kurulum adımlarını göster"
-- "Hangi araçlara ihtiyacım var?"
+- "How do I reset the device?"
+- "What are the safety precautions?"
+- "Show me the installation steps"
+- "What tools do I need?"
 
-## Sorun Giderme (Troubleshooting)
+## Troubleshooting
 
-### "Index not loaded" hatası
-`python src/main.py` ile önce dökümanları işleyin.
+### "Index not loaded" error
+Process documents first with `python src/main.py`.
 
-### Port kullanımda
+### Port already in use
 ```bash
-# Backend için (8000)
+# For backend (8000)
 lsof -ti:8000 | xargs kill -9
 
-# Frontend için (3000)
+# For frontend (3000)
 lsof -ti:3000 | xargs kill -9
 ```
 
-### Memory hatası
-`config.py`'de `CHUNK_SIZE`'ı azaltın.
+### Memory error
+Reduce `CHUNK_SIZE` in `config.py`.
 
-### Model indirme yavaş
-İlk çalıştırmada modeller (~2GB) indirilir. İnternet bağlantınızı kontrol edin.
+### Slow model download
+First run downloads models (~2GB). Check your internet connection.
 
-## Klasör Yapısı
+## Folder Structure
 
 ```
 rag_project/
-├── data/              # Buraya PDF'leri koy
-├── output/            # İşlenmiş veriler buraya kaydedilir
+├── data/              # Put PDFs here
+├── output/            # Processed data saved here
 │   ├── chunks.json
 │   ├── embeddings.npy
-│   ├── images/        # Çıkarılan resimler
+│   ├── images/        # Extracted images
 │   └── faiss_index/
-├── src/               # Python backend kodu
+├── src/               # Python backend code
 ├── web/               # React frontend
 └── api.py             # FastAPI server
 ```
 
-## Faydalı Komutlar
+## Useful Commands
 
 ```bash
-# CLI arayüzü ile test et (web UI olmadan)
+# Test with CLI interface (without web UI)
 source venv/bin/activate
 python src/interactive_search.py
 
 # API health check
 curl http://localhost:8000/api/health
 
-# Yeni PDF ekle ve yeniden işle
+# Add new PDF and reprocess
 cp new_file.pdf data/
 python src/main.py
 
-# Logs'ları temizle
+# Clean logs
 rm -rf output/
 ```
 
-## Performans İpuçları
+## Performance Tips
 
-1. **İlk çalıştırma:** Model indirme nedeniyle yavaş olabilir
-2. **CPU kullanımı:** İşleme sırasında yüksek CPU kullanımı normal
-3. **RAM:** ~4GB RAM gerekli
-4. **Sorgu hızı:** ~2 saniye (reranking ile)
-5. **Batch işleme:** Birden fazla PDF'i birlikte işleyin
+1. **First run:** May be slow due to model downloads
+2. **CPU usage:** High CPU usage during processing is normal
+3. **RAM:** ~4GB RAM required
+4. **Query speed:** ~2 seconds (with reranking)
+5. **Batch processing:** Process multiple PDFs together for efficiency
 
-## Yardım
+## Help
 
-Detaylı bilgi için `README.md` dosyasına bakın.
+See `README.md` for detailed information.
 
 ---
 
-**Not:** GPU olmadan çalışır ama GPU ile 5-10x daha hızlı olur.
+**Note:** Works without GPU, but 5-10x faster with GPU.

@@ -49,10 +49,10 @@ Given a user query, expand it with relevant technical terms, synonyms, and relat
 Keep it concise (max 50 words) but include important keywords.
 
 Example:
-Input: "cpu nasıl açılır"
+Input: "how to power on cpu"
 Output: "CPU 1511-1 PN power on startup procedure mains connection plug power supply SIMATIC memory card RUN position switch"
 
-Input: "hata kodları"
+Input: "error codes"
 Output: "error codes fault diagnostics troubleshooting LED indicators status messages alarm codes diagnostic buffer"
 
 Just output the expanded query, nothing else."""

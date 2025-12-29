@@ -27,7 +27,7 @@ function ChatInput({ onSendMessage, disabled }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={disabled}
-            placeholder="Ask something from your documents..."
+            placeholder="Ask me about your documents..."
             rows={1}
             className="flex-1 bg-dark-bg text-white placeholder-gray-500 rounded-3xl px-6 py-4 pr-14 
                      focus:outline-none focus:ring-2 focus:ring-primary border border-dark-border

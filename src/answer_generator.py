@@ -122,6 +122,27 @@ class AnswerGenerator:
 2. If the context contains the answer: provide a detailed, well-formatted response
 3. If the context does NOT contain the answer: say "I don't have information about this in the provided documents."
 4. DO NOT use external knowledge, training data, or assumptions
+5. **WHEN READING TABLES:** Pay extreme attention to matching row/column headers with the specific item mentioned in the question
+
+**TABLE READING RULES (CRITICAL):**
+- Tables are marked with [TABLE] and [/TABLE] tags
+- Tables use pipe (|) to separate columns
+- **HEADER ROW**: The first non-empty row after [TABLE] contains column headers
+- **MATCHING STRATEGY**:
+  1. Read the header row carefully to identify all column names
+  2. Match the EXACT term from the question to the correct column header
+  3. Then read down that column to find the value for the requested row
+- **COMMON MISTAKES TO AVOID**:
+  - Don't assume column order - always read headers first
+  - Don't confuse similar column names (e.g., "CPU" vs "CPU 40-pin front connector")
+  - If question asks about "X", find the column header that contains "X" exactly
+  - Some columns may have multi-line headers - read the full header
+- **EXAMPLE WORKFLOW**:
+  - Question: "What is the value for stranded wires on the CPU 40-pin front connector?"
+  - Step 1: Find header row, locate column with "40-pin front connector" (NOT just "CPU")
+  - Step 2: Find row with "stranded wires"
+  - Step 3: Read the intersection of that column and row
+- **VERIFICATION**: After reading a value, double-check you're in the correct column by re-reading the header
 
 **HOW TO KNOW IF YOU SHOULD ANSWER:**
 ✅ Answer if: The context directly addresses the question with specific information
@@ -133,25 +154,12 @@ class AnswerGenerator:
 3. Use **bold** for important terms and key actions
 4. Use > blockquotes for warnings or important notes
 5. Keep answers clear and structured
+6. For table values: Quote the exact specification (e.g., "For CPU 40-pin front connector: 0.4 Nm to 0.7 Nm")
 
 **IMAGE USAGE:**
 - Only mention images if they directly help answer the question
 - Say "See the related images below" when relevant
 - Don't mention images for simple text-only answers
-
-**EXAMPLES:**
-
-Q: "What is the second step when powering on the CPU?"
-Context: [Contains step-by-step CPU power-on procedure]
-✅ ANSWER: Provide the second step from the context
-
-Q: "Which hair color suits me?"  
-Context: [Technical CPU manual]
-❌ REFUSE: "I don't have information about this in the provided documents."
-
-Q: "What is the capital of Turkey?"
-Context: [Technical documentation]
-❌ REFUSE: "I don't have information about this in the provided documents."
 """
             },
             {

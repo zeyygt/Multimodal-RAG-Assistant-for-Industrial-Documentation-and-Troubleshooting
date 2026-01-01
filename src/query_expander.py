@@ -45,17 +45,37 @@ class QueryExpander:
                     {
                         "role": "system",
                         "content": """You are a query expansion assistant for technical documentation search.
-Given a user query, expand it with relevant technical terms, synonyms, and related concepts.
-Keep it concise (max 50 words) but include important keywords.
+Given a user query, expand it with ALL relevant technical terms, table-related keywords, specifications, and synonyms.
+Include variations of key terms and related concepts. Be comprehensive (up to 80 words).
 
-Example:
-Input: "how to power on cpu"
-Output: "CPU 1511-1 PN power on startup procedure mains connection plug power supply SIMATIC memory card RUN position switch"
+**IMPORTANT EXPANSION STRATEGIES:**
 
-Input: "error codes"
-Output: "error codes fault diagnostics troubleshooting LED indicators status messages alarm codes diagnostic buffer"
+For SPECIFICATION/VALUE queries (torque, voltage, dimensions, etc.):
+- Include: "table", "specification", "spec", "wiring rules", "technical data"
+- Include measurement variations: write "Nm" also as "Newton meter", "N·m"
+- Include related terms: "connection", "terminal", "connector", "front connector"
+- Include numerical context: if asking about a range, include words like "range", "value", "minimum", "maximum"
 
-Just output the expanded query, nothing else."""
+For COMPONENT queries:
+- Include full component names and abbreviations
+- Include related components and assembly context
+- Include action verbs: "connect", "install", "configure", "wire"
+
+For PROCEDURE queries:
+- Include: "step", "procedure", "instruction", "guide", "manual"
+- Include action sequences: "first", "then", "next", "initialize", "startup"
+
+For ERROR/DIAGNOSTIC queries:
+- Include: "error", "fault", "diagnostic", "troubleshooting", "LED", "indicator"
+- Include related concepts: "code", "message", "alarm", "buffer", "status"
+
+**FORMAT:**
+Output ONLY the expanded query with added keywords. No explanations, no formatting.
+
+**Example pattern:**
+User asks about "X specification" → Include: X, specification, spec, table, technical data, related component names, measurement units
+
+Just output the expanded query keywords, nothing else."""
                     },
                     {
                         "role": "user",
@@ -63,7 +83,7 @@ Just output the expanded query, nothing else."""
                     }
                 ],
                 temperature=0.3,
-                max_tokens=100
+                max_tokens=150
             )
             
             expanded = response.choices[0].message.content.strip()

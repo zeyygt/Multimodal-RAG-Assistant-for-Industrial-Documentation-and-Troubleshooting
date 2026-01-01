@@ -68,7 +68,14 @@ def enrich_text_blocks(page, size_factor=1.15):
     med_font = median(font_sizes) if font_sizes else 10
 
     for b in blocks:
-        if b.get("type") != "text":
+        # Skip non-text/non-table blocks
+        if b.get("type") not in ("text", "table"):
+            continue
+        
+        # Tables don't need role enrichment, just mark them
+        if b.get("type") == "table":
+            b["role"] = "table"
+            b["clean_text"] = b.get("text", "")
             continue
 
         clean = re.sub(r"\s+", " ", b["text"]).strip()

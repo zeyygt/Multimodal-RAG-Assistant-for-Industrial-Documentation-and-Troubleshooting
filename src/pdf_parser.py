@@ -17,6 +17,39 @@ def save_pixmap(pix, fname_base):
     return str(out)
 
 
+def _bbox_overlap(bbox1, bbox2, threshold=0.5):
+    """
+    Check if two bounding boxes overlap significantly
+    
+    Args:
+        bbox1, bbox2: Bounding boxes as [x0, y0, x1, y1]
+        threshold: Minimum overlap ratio to consider as overlapping
+        
+    Returns:
+        bool: True if boxes overlap significantly
+    """
+    x1_min, y1_min, x1_max, y1_max = bbox1
+    x2_min, y2_min, x2_max, y2_max = bbox2
+    
+    # Calculate intersection area
+    x_overlap = max(0, min(x1_max, x2_max) - max(x1_min, x2_min))
+    y_overlap = max(0, min(y1_max, y2_max) - max(y1_min, y2_min))
+    intersection = x_overlap * y_overlap
+    
+    if intersection == 0:
+        return False
+    
+    # Calculate union area
+    area1 = (x1_max - x1_min) * (y1_max - y1_min)
+    area2 = (x2_max - x2_min) * (y2_max - y2_min)
+    
+    # Check if intersection is significant relative to smaller box
+    smaller_area = min(area1, area2)
+    overlap_ratio = intersection / smaller_area if smaller_area > 0 else 0
+    
+    return overlap_ratio > threshold
+
+
 def parse_pdf(pdf_path):
     """
     Parse PDF and extract text, images, and layout information
@@ -43,10 +76,60 @@ def parse_pdf(pdf_path):
             "blocks": []
         }
 
-        # ---------- 1) Text blocks ----------
+        # ---------- 1) Tables (NEW - detect tables first) ----------
+        table_bboxes = []
+        try:
+            tables = page.find_tables()
+            for table in tables:
+                table_bbox = table.bbox
+                table_bboxes.append(table_bbox)
+                
+                # Extract table as pandas dataframe
+                df = table.to_pandas()
+                
+                # Convert table to structured text with clear column headers
+                table_text_parts = []
+                
+                # Add header row with clear separators
+                if not df.empty:
+                    headers = [str(h) for h in df.columns]
+                    table_text_parts.append(" | ".join(headers))
+                    table_text_parts.append("-" * 50)
+                    
+                    # Add data rows
+                    for idx, row in df.iterrows():
+                        row_values = [str(v) if str(v) != 'nan' else '' for v in row]
+                        table_text_parts.append(" | ".join(row_values))
+                
+                table_text = "\n".join(table_text_parts)
+                
+                if table_text.strip():
+                    page_json["blocks"].append({
+                        "type": "table",
+                        "text": table_text,
+                        "bbox": list(table_bbox),
+                        "rows": len(df),
+                        "cols": len(df.columns)
+                    })
+        except Exception as e:
+            # If table detection fails, continue with regular text extraction
+            pass
+
+        # ---------- 2) Text blocks (skip areas covered by tables) ----------
         td = page.get_text("dict")
         for b in td.get("blocks", []):
             if b.get("type", 0) == 0 and "lines" in b:
+                # Check if this block overlaps with any table
+                block_bbox = b["bbox"]
+                overlaps_table = False
+                for table_bbox in table_bboxes:
+                    if _bbox_overlap(block_bbox, table_bbox):
+                        overlaps_table = True
+                        break
+                
+                if overlaps_table:
+                    continue  # Skip text blocks that are part of tables
+                
                 texts, sizes = [], []
                 for ln in b["lines"]:
                     for sp in ln.get("spans", []):
@@ -62,7 +145,7 @@ def parse_pdf(pdf_path):
                         "font_size": round(mean(sizes), 2) if sizes else None
                     })
 
-        # ---------- 2) Images ----------
+        # ---------- 3) Images ----------
         rd = page.get_text("rawdict")
         raw_image_blocks = []
         for b in rd.get("blocks", []):
@@ -109,7 +192,7 @@ def parse_pdf(pdf_path):
             })
             img_counter += 1
 
-        # ---------- 3) Vector drawings ----------
+        # ---------- 4) Vector drawings ----------
         try:
             drawings = page.get_drawings()
             for d in drawings:
@@ -121,7 +204,7 @@ def parse_pdf(pdf_path):
         except Exception:
             pass
 
-        # ---------- 4) Sort blocks (top to bottom, left to right) ----------
+        # ---------- 5) Sort blocks (top to bottom, left to right) ----------
         page_json["blocks"].sort(
             key=lambda x: (
                 round(x["bbox"][1], 1) if x.get("bbox") else 0,

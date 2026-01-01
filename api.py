@@ -58,6 +58,7 @@ class ChatResponse(BaseModel):
     images: List[ImageInfo]
     sources_count: int
     chunks_used: int
+    source_chunks: Optional[List[dict]] = []
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
@@ -66,13 +67,13 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=503, detail="Index not loaded. Run src/main.py first.")
     
     try:
-        # Search for relevant chunks (without expensive query expansion)
+        # Search for relevant chunks with query expansion for better recall
         chunk_ids = search_engine.get_answer_chunks(
             query=request.message,
-            k=request.top_k,
-            use_multi_query=False,    # Disabled - saves cost, no quality loss
-            use_expansion=False,       # Disabled - prevents false positives
-            min_similarity=0.5         # Higher threshold for better precision
+            k=20,                      # Increased to get more candidates
+            use_multi_query=False,     # Keep disabled
+            use_expansion=True,        # Enable for better keyword matching
+            min_similarity=0.42         # Lowered threshold for better recall
         )
         
         if not chunk_ids:
@@ -85,6 +86,33 @@ async def chat(request: ChatRequest):
         
         # Get chunks from IDs
         chunks = [search_engine.chunks[idx] for idx in chunk_ids]
+        
+        # Prepare source chunks for frontend
+        source_chunks = []
+        for idx, chunk_id in enumerate(chunk_ids):
+            chunk = search_engine.chunks[chunk_id]
+            source_chunk = {
+                'page': chunk.get('page_number'),
+                'section': chunk.get('section_heading', 'Document Section'),
+                'text': chunk.get('text', '')[:500],  # First 500 chars
+                'images': [],
+                'similarity': chunk.get('similarity_score', 0)  # If available from search
+            }
+            
+            # Add chunk images
+            if chunk.get('images'):
+                for img in chunk['images']:
+                    # Handle both string paths and dict objects
+                    if isinstance(img, dict):
+                        img_path = img.get('path', '')
+                    else:
+                        img_path = img
+                    
+                    if img_path:
+                        img_filename = os.path.basename(img_path)
+                        source_chunk['images'].append(f"/api/image/{img_filename}")
+            
+            source_chunks.append(source_chunk)
         
         # Generate answer with images
         answer_data = answer_gen.generate_answer(
@@ -108,7 +136,8 @@ async def chat(request: ChatRequest):
             answer=answer_data['answer'],
             images=images,
             sources_count=len(chunk_ids),
-            chunks_used=len(chunk_ids)
+            chunks_used=len(chunk_ids),
+            source_chunks=source_chunks
         )
         
     except Exception as e:

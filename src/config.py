@@ -36,8 +36,14 @@ FAISS_INDEX_TYPE = "flat"  # Can be "flat" or "hnsw"
 # Semantic linking threshold
 SIMILARITY_THRESHOLD = 0.12
 
-# LLM Reranking settings
-USE_LLM_RERANKING = True  # Enable LLM-based reranking
+# Reranking settings
+RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"  # Fast, lightweight (~80MB)
+# Alternative options:
+# "BAAI/bge-reranker-base" - Better quality (~280MB)
+# "BAAI/bge-reranker-large" - Best quality (~560MB, slower)
+MAX_CHUNKS_TO_RERANK = 20  # Increased for better reranking quality
+
+# LLM settings (for answer generation only, not reranking)
 OPENAI_API_KEY = None  # Set via environment variable OPENAI_API_KEY
-LLM_MODEL = "gpt-4o-mini"  # Most cost-effective: gpt-41-mini, gpt-3.5-turbo
-MAX_CHUNKS_TO_RERANK = 10  # Don't rerank too many (costs money)
+LLM_MODEL = "gpt-4o-mini"  # For answer generation
+ANSWER_MODEL = "gpt-4o"  # Model with vision support for multimodal answers

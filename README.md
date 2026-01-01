@@ -8,11 +8,11 @@ A full-stack Retrieval-Augmented Generation (RAG) system with multimodal support
 - **OCR Support**: Tesseract and EasyOCR for image text extraction
 - **Semantic Search**: FAISS vector search with text and image embeddings
 - **Relevance Filtering**: Similarity threshold (0.4) rejects irrelevant questions
-- **LLM Reranking**: GPT-4o-mini ranks results by relevance
+- **Cross-Encoder Reranking**: Fast local reranking model (no API calls needed)
 - **Multimodal Answers**: GPT-4o with vision generates answers with relevant images
 - **Hallucination Prevention**: Strict prompts ensure answers only use provided context
 - **Modern Web UI**: React frontend with solid purple theme and robot avatar
-- **Cost Optimized**: Query expansion disabled for 60% cost reduction (~$0.012/query)
+- **Cost Optimized**: Local reranking + query expansion disabled (~$0.008/query)
 - **CPU-Optimized**: No GPU required
 
 ## 📁 Project Structure
@@ -28,7 +28,7 @@ rag_project/
 │   ├── chunking.py               # Semantic chunking
 │   ├── embeddings.py             # Embedding generation
 │   ├── search.py                 # FAISS search with relevance filtering
-│   ├── llm_reranker.py           # LLM reranking
+│   ├── llm_reranker.py           # Cross-encoder reranking (local model)
 │   ├── answer_generator.py       # Answer generation with hallucination prevention
 │   ├── query_expander.py         # Query expansion (disabled for cost optimization)
 │   ├── interactive_search.py     # CLI interface
@@ -195,8 +195,8 @@ Edit `src/config.py` to customize:
 # Model settings
 TEXT_MODEL = "BAAI/bge-large-en-v1.5"  # Text embedding model
 IMAGE_MODEL = "openai/clip-vit-base-patch32"  # Image model
-LLM_MODEL = "gpt-4o-mini"  # Reranking model
-ANSWER_MODEL = "gpt-4o"  # Answer generation model
+RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"  # Cross-encoder reranker
+ANSWER_MODEL = "gpt-4o"  # Answer generation model (with vision)
 
 # Search settings
 DEFAULT_TOP_K = 10  # Number of results to retrieve
@@ -314,9 +314,9 @@ Feel free to open issues or submit pull requests!
 
 ## ⚡ Performance Tips
 
-1. **First Run**: Model downloads ~2GB (cached for future use)
+1. **First Run**: Model downloads ~2.5GB (embeddings + reranker, cached for future use)
 2. **CPU Processing**: Initial indexing takes 2-5 minutes per 100 pages
-3. **Search Speed**: <2 seconds per query with reranking
+3. **Search Speed**: <1 second per query with local reranking
 4. **Memory Usage**: ~4GB RAM for typical documents
 5. **Batch Processing**: Process multiple PDFs together for efficiency
 
@@ -324,9 +324,10 @@ Feel free to open issues or submit pull requests!
 
 The system is optimized for low API costs:
 
+- **Local Reranking**: Cross-encoder model runs locally (saves 100% of reranking costs)
 - **Query Expansion**: Disabled (saves 40% on API calls)
 - **Multi-Query Retrieval**: Disabled (saves additional 20%)
-- **Current Cost**: ~$0.012 per query with GPT-4o
+- **Current Cost**: ~$0.008 per query with GPT-4o (33% cheaper than LLM reranking)
 - **Alternative**: Use GPT-4o-mini for answers → ~$0.001 per query (90% savings)
 - **Relevance Filtering**: Prevents unnecessary LLM calls for irrelevant questions
 

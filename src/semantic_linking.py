@@ -13,16 +13,17 @@ def semantic_link_images_to_text(blocks, img_dir=None):
     Link each image to the most semantically similar text block using CLIP
     
     Args:
-        blocks (list): List of blocks (text and images)
+        blocks (list): List of blocks (text, tables, and images)
         img_dir: Not used, kept for compatibility
         
     Returns:
         list: Blocks with semantic links added to images
     """
-    text_blocks = [b for b in blocks if b["type"] == "text"]
+    # Include both text and table blocks for semantic linking
+    text_blocks = [b for b in blocks if b["type"] in ("text", "table")]
     img_blocks = [b for b in blocks if b["type"] == "image"]
 
-    # Get text content
+    # Get text content (tables also have text field)
     texts = [t.get("clean_text") or t.get("text") for t in text_blocks]
     if len(texts) == 0:
         return blocks

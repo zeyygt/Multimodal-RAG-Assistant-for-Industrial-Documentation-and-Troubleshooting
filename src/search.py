@@ -158,19 +158,18 @@ class RAGSearchEngine:
     
     def get_answer_chunks(self, query, k=10, use_multi_query=True, use_expansion=True, min_similarity=0.3):
         """
-        Get all chunks from the dominant section identified by the query
-        INCLUDING all subsections (e.g., 2.4, 2.4.1, 2.4.2)
-        Sorted by relevance (similarity score)
+        Get top-k most relevant chunks for the query, sorted by similarity.
+        No section-based filtering - just returns the most relevant chunks.
         
         Args:
             query (str): Search query
-            k (int): Number of initial results to consider
+            k (int): Number of results to return
             use_multi_query (bool): Use query variations for better recall
             use_expansion (bool): Expand query with technical terms
             min_similarity (float): Minimum similarity threshold (0-1). Below this, return empty
             
         Returns:
-            list: Chunk IDs from the dominant section, sorted by relevance
+            list: Top-k chunk IDs sorted by relevance
         """
         if self.chunks is None:
             self.load_chunks()
@@ -189,24 +188,21 @@ class RAGSearchEngine:
         if use_multi_query and self.expander and self.expander.enabled:
             queries_to_search = self.expander.generate_multi_queries(search_query, num_queries=2)
         
-        # Search with all query variations and collect results
-        all_ids = []
-        all_prefixes = []
+        # Search with all query variations and collect results with scores
+        all_results = {}  # chunk_id -> max_similarity
         max_similarity = 0.0
         
         for q in queries_to_search:
             ids, scores = self.search(q, k=k)
+            
             # Track max similarity score
             if len(scores) > 0:
                 max_similarity = max(max_similarity, float(scores[0]))
-            all_ids.extend(ids)
             
-            # Get dominant prefix
-            for cid in ids:
-                heading = self.chunks[cid].get("section_heading", "")
-                prefix = self.get_section_prefix(heading)
-                if prefix:
-                    all_prefixes.append(prefix)
+            # Collect results (keep highest score for each chunk)
+            for cid, score in zip(ids, scores):
+                if cid not in all_results or score > all_results[cid]:
+                    all_results[cid] = float(score)
         
         # Check if best match is below threshold
         print(f"🎯 Max similarity: {max_similarity:.3f} (threshold: {min_similarity})")
@@ -214,59 +210,11 @@ class RAGSearchEngine:
             print(f"⚠️ Query not relevant to document (similarity {max_similarity:.3f} < {min_similarity})")
             return []
         
-        # Find most common dominant prefix across all queries
-        if all_prefixes:
-            counter = Counter(all_prefixes)
-            dominant_prefix, _ = counter.most_common(1)[0]
-        elif all_ids:
-            # Fallback to first result
-            return list(dict.fromkeys(all_ids))[:k]  # Remove duplicates, keep order
-        else:
-            return []
+        # Sort by similarity score (highest first)
+        sorted_chunks = sorted(all_results.items(), key=lambda x: x[1], reverse=True)
+        answer_ids = [cid for cid, score in sorted_chunks[:k]]
         
-        # Find all chunks with the same section prefix OR subsections
-        # e.g., if dominant is "2.4", include "2.4", "2.4.1", "2.4.2" etc.
-        candidate_ids = []
-        for i, ch in enumerate(self.chunks):
-            heading = ch.get("section_heading", "")
-            prefix = self.get_section_prefix(heading)
-            if prefix:
-                # Match if prefix equals dominant OR starts with dominant + "."
-                if prefix == dominant_prefix or prefix.startswith(dominant_prefix + "."):
-                    # Filter out empty/header-only chunks
-                    text = ch.get("text", "").strip()
-                    has_content = (
-                        len(text) > len(heading) + 10 or  # Has more than just heading
-                        ch.get("images") or  # Has images
-                        ch.get("ocr_snippets", "").strip()  # Has OCR text
-                    )
-                    if has_content:
-                        candidate_ids.append(i)
-        
-        # Calculate similarity scores for all candidates using ORIGINAL query
-        q_vec = self.encode_query(query)
-        
-        # Get embeddings for candidates
-        if len(candidate_ids) == 0:
-            return []
-        
-        candidate_vecs = []
-        for cid in candidate_ids:
-            # Get vector from index
-            vec = self.index.reconstruct(int(cid))
-            candidate_vecs.append(vec)
-        
-        import numpy as np
-        candidate_vecs = np.vstack(candidate_vecs)
-        
-        # Calculate similarities
-        similarities = np.dot(candidate_vecs, q_vec.reshape(-1, 1)).flatten()
-        
-        # Sort by similarity (highest first)
-        sorted_indices = np.argsort(similarities)[::-1]
-        answer_ids = [candidate_ids[i] for i in sorted_indices]
-        
-        # LLM Reranking (optional)
+        # LLM Reranking
         if len(answer_ids) > 1:
             if self.reranker is None:
                 self.reranker = get_reranker()
@@ -274,6 +222,7 @@ class RAGSearchEngine:
             if self.reranker.enabled:
                 answer_ids = self.reranker.rerank_chunks(query, self.chunks, answer_ids)
         
+        print(f"📋 Returning {len(answer_ids)} chunks (top {k} after deduplication)")
         return answer_ids
     
     def pretty_print_chunk(self, chunk_id):

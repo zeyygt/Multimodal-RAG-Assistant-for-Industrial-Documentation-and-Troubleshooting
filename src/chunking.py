@@ -94,20 +94,28 @@ def create_chunks(input_path=None):
                 continue
 
             # ------------------------------------------------
-            # 2) BODY / LIST ITEM / CAPTION
+            # 2) BODY / LIST ITEM / CAPTION / TABLE
             # ------------------------------------------------
-            if current_chunk and b.get("type") == "text" and b.get("role") in ("body", "list_item", "caption"):
-
-                current_chunk["text_blocks"].append((page_num, idx))
-                txt = normalize_text(b.get("clean_text") or b.get("text"))
-
-                if b["role"] == "list_item":
-                    current_chunk["text"] += f"- {txt}\n"
-                elif b["role"] == "caption":
-                    current_chunk["text"] += f"[Caption] {txt}\n"
-                else:
-                    current_chunk["text"] += txt + "\n"
-                continue
+            if current_chunk and b.get("type") in ("text", "table"):
+                role = b.get("role")
+                
+                # Include body text, lists, captions, and tables
+                if role in ("body", "list_item", "caption", "table"):
+                    current_chunk["text_blocks"].append((page_num, idx))
+                    
+                    if role == "table":
+                        # Add table with clear formatting
+                        txt = b.get("text", "")
+                        current_chunk["text"] += f"\n[TABLE]\n{txt}\n[/TABLE]\n"
+                    else:
+                        txt = normalize_text(b.get("clean_text") or b.get("text"))
+                        if role == "list_item":
+                            current_chunk["text"] += f"- {txt}\n"
+                        elif role == "caption":
+                            current_chunk["text"] += f"[Caption] {txt}\n"
+                        else:
+                            current_chunk["text"] += txt + "\n"
+                    continue
 
             # ------------------------------------------------
             # 3) Orphan body text (before first heading)
